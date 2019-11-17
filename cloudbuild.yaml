@@ -1,0 +1,58 @@
+# Copyright 2019 Seth Vargo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+- id: test
+  name: golang:1.13
+  entrypoint: make
+  env:
+  - TEST_ACC_BERGLAS_BUCKET=sethvargo-cicd-terraform-provider-berglas
+  - TEST_ACC_BERGLAS_KEY=projects/sethvargo-cicd/locations/global/keyRings/terraform-provider-berglas/cryptoKeys/tests
+  args: ['test']
+
+- id: build
+  name: golang:1.13
+  entrypoint: /bin/bash
+  args:
+  - -ec
+  - if [ -n "${TAG_NAME}" ]; then make build; fi
+
+- id: compress
+  name: golang:1.13
+  entrypoint: /bin/bash
+  args:
+  - -ec
+  - if [ -n "${TAG_NAME}" ]; then make compress; fi
+
+- id: publish
+  name: gcr.io/sethvargo-cicd/github-releases
+  env:
+  - GITHUB_RELEASE_REPOSITORY=sethvargo/terraform-provider-berglas
+  - GITHUB_RELEASE_COMMIT=$COMMIT_SHA
+  - GITHUB_RELEASE_TAG=$TAG_NAME
+  secretEnv:
+  - GITHUB_RELEASE_ACCESS_TOKEN
+  entrypoint: /bin/bash
+  args:
+  - -ec
+  - |
+    if [ -n "${TAG_NAME}" ]; then
+      /bin/github-release ${TAG_NAME} build/*.tgz
+    fi
+
+
+secrets:
+- kmsKeyName: projects/sethvargo-cicd/locations/global/keyRings/terraform-provider-berglas/cryptoKeys/github-token
+  secretEnv:
+    GITHUB_RELEASE_ACCESS_TOKEN: CiQASFI//HUw0E24SGQ8HcPoCW2nC39tviY1FaftCiqyTS45YdYSUQD40/CLyoSyiaQlwQdmg2Q0rVSYUd1W/1rLdGoHOhE0IHx5oU8+6ULIvzqDyT7FprQaL8QxYHSyvOlFRV6kkEb+PvXL2S3MruVov1OzomtiFg==
