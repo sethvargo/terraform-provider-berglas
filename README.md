@@ -63,7 +63,7 @@ repository.
 
 ## Reference
 
-See [the documentation](doc/).
+See [the documentation](docs/).
 
 
 [berglas]: https://github.com/GoogleCloudPlatform/berglas
