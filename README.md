@@ -3,6 +3,10 @@
 This is a [Terraform][terraform] provider for interacting with
 [Berglas][berglas].
 
+**Secrets will be stored in plaintext in the Terraform state. You should only
+use this with provider with Terraform remote state. For more information, please
+see [sensitive state][sensitive-state].**
+
 
 ## Installation
 
@@ -60,13 +64,6 @@ repository.
 ## Reference
 
 See [the documentation](doc/).
-
-## FAQ
-
-**Q: Is it secure?**<br>
-A: Secrets will be stored in plaintext in the Terraform state. You should only
-use this with remote state. Please see [sensitive state][sensitive-state] for
-more information.
 
 
 [berglas]: https://github.com/GoogleCloudPlatform/berglas
