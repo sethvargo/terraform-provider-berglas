@@ -58,7 +58,7 @@ see [sensitive state][sensitive-state].**
 
 ## Examples
 
-For more examples, please see the [examples][examples] folder in this
+For more examples, please see the [examples](examples/) folder in this
 repository.
 
 ## Reference
