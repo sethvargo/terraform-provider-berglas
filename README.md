@@ -29,6 +29,8 @@ see [sensitive state][sensitive-state].**
 
     This will find the plugin locally.
 
+1. If you haven't already, [bootstrap berglas](https://github.com/GoogleCloudPlatform/berglas#setup)
+
 
 ## Usage
 
@@ -37,6 +39,7 @@ see [sensitive state][sensitive-state].**
     ```hcl
     resource "berglas_secret" "demo" {
       bucket    = "my-bucket"
+      key       = "projects/${var.project_id}/locations/global/keyRings/berglas/cryptoKeys/berglas-key"
       name      = "demo"
       plaintext = "p@s$w0rd!"
     }
