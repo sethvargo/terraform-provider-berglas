@@ -53,10 +53,5 @@ func resourceBerglasIam() *schema.Resource {
 }
 
 func dataSourceBerglasIamRead(d *schema.ResourceData, meta interface{}) error {
-	bucket := d.Get("bucket").(string)
-	name := d.Get("name").(string)
-
-	id := encodeId(bucket, name)
-	d.SetId(id)
 	return resourceBerglasIamRead(d, meta)
 }

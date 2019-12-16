@@ -65,48 +65,60 @@ func resourceBerglasIamCreate(d *schema.ResourceData, meta interface{}) error {
 
 	bucket := d.Get("bucket").(string)
 	name := d.Get("name").(string)
-	members := d.Get("members").(string)
+	members := d.Get("members").([]string)
 
 	if err := client.Grant(ctx, &berglas.GrantRequest{
 		Project: project,
 		Name:    name,
-		Members: []string{serviceAccount},
+		Members: []string{members},
 	}); err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	return nil
-
 }
 func resourceBerglasIamRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*config)
-	client, ctx := config.Client(), config.Context()
-
-	// TODO
-	return nil
+	// Rely on iamMemberImport here, as anything else is inconsistent.
+    // TODO
 
 }
 func resourceBerglasIamUpdate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*config)
-	client, ctx := config.Client(), config.Context()
-
-	// TODO
-	return nil
+	// Iam is eventually consistent; just Grant again.
+	return resourceBerglasIamCreate(d, meta)
 }
 func resourceBerglasIamDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*config)
 	client, ctx := config.Client(), config.Context()
+	name := d.Get("name").(string)
+	members := d.Get("members").([]string)
 
 	if err := client.Revoke(ctx, &berglas.RevokeRequest{
 		Project: project,
 		Name:    name,
-		Members: []string{serviceAccount},
+		Members: []string{members},
 	}); err != nil {
-		t.Fatal(err)
+		return err
 	}
 	return nil
 }
 
 func resourceBerglasIamImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// TODO
+	bucket, key, members, err := decodeId(d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := setMany(d, resourceFields{
+		"bucket":  bucket,
+		"name":    object,
+		"members": members,
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := resourceBerglasIamRead(d, meta); err != nil {
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
