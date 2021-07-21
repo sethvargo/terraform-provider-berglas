@@ -31,6 +31,20 @@ see [sensitive state][sensitive-state].**
 
 1. If you haven't already, [bootstrap berglas](https://github.com/GoogleCloudPlatform/berglas#setup)
 
+#### Optionally
+
+If using terraform v0.13+ you can create a `versions.tf` file to pull the plugin during `terraform init` without installing it locally
+```hcl
+    terraform {
+      required_providers {
+        berglas = {
+          source  = "sethvargo/berglas"
+          version = "0.1.0"
+        }
+      }
+    }
+```
+
 
 ## Usage
 
