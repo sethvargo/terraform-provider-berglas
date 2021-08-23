@@ -16,14 +16,14 @@ package berglas
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/pathorcontents"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/pkg/errors"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/sethvargo/terraform-provider-berglas/internal/pathorcontents"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -34,7 +34,7 @@ const (
 )
 
 // Provider returns the actual provider instance.
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"credentials": {
@@ -77,41 +77,32 @@ OAuth2 access token to use for communicating with Google APIs.
 	}
 
 	// Meta, but we have to pass the provider into itself
-	provider.ConfigureFunc = providerConfigure(provider)
+	provider.ConfigureContextFunc = providerConfigure(provider)
 
 	return provider
 }
 
 // providerConfigure configures the provider
-func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
-	return func(d *schema.ResourceData) (interface{}, error) {
-		ctx := p.StopContext()
-
+func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
+	return func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		accessToken := d.Get("access_token").(string)
 		credentials := d.Get("credentials").(string)
 
-		tokenSource, err := tokenSource(ctx, accessToken, credentials)
+		// Note that we explicitly use context.Background() instead of the provided
+		// context because we want to give the client a chance to finish before
+		// cleanup.
+		tokenSource, err := tokenSource(context.Background(), accessToken, credentials)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to configure provider")
+			return nil, diag.FromErr(fmt.Errorf("failed to configure provider: %w", err))
 		}
 
-		client, err := berglas.New(ctx, option.WithTokenSource(tokenSource))
+		client, err := berglas.New(context.Background(), option.WithTokenSource(tokenSource))
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to setup berglas")
+			return nil, diag.FromErr(fmt.Errorf("failed to setup berglas: %w", err))
 		}
 
 		config := &config{
 			client: client,
-			ctx:    ctx,
-		}
-
-		// Update the stored context if the provider is reset.
-		p.MetaReset = func() error {
-			config.lock.Lock()
-			defer config.lock.Unlock()
-
-			config.ctx = p.StopContext()
-			return nil
 		}
 
 		return config, nil
@@ -126,7 +117,7 @@ func tokenSource(ctx context.Context, accessToken, credentials string) (oauth2.T
 
 		contents, _, err := pathorcontents.Read(accessToken)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to load access token")
+			return nil, fmt.Errorf("failed to load access token: %w", err)
 		}
 
 		return oauth2.StaticTokenSource(&oauth2.Token{
@@ -140,12 +131,12 @@ func tokenSource(ctx context.Context, accessToken, credentials string) (oauth2.T
 
 		contents, _, err := pathorcontents.Read(credentials)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to load credentials")
+			return nil, fmt.Errorf("failed to load credentials: %w", err)
 		}
 
 		creds, err := google.CredentialsFromJSON(ctx, []byte(contents), cloudPlatformScope)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse credentials")
+			return nil, fmt.Errorf("failed to parse credentials: %w", err)
 		}
 
 		return creds.TokenSource, nil
@@ -155,7 +146,7 @@ func tokenSource(ctx context.Context, accessToken, credentials string) (oauth2.T
 	log.Printf("[INFO] authenticating via default credentials")
 	source, err := google.DefaultTokenSource(ctx, cloudPlatformScope)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get default credentials")
+		return nil, fmt.Errorf("failed to get default credentials: %w", err)
 	}
 	return source, nil
 }

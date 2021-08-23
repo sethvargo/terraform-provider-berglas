@@ -15,7 +15,6 @@
 package berglas
 
 import (
-	"context"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
@@ -25,7 +24,6 @@ type config struct {
 	lock sync.RWMutex
 
 	client *berglas.Client
-	ctx    context.Context
 }
 
 // Client returns the configured berglas client.
@@ -34,12 +32,4 @@ func (c *config) Client() *berglas.Client {
 	defer c.lock.RUnlock()
 
 	return c.client
-}
-
-// Context returns the context on the config.
-func (c *config) Context() context.Context {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	return c.ctx
 }

@@ -18,7 +18,6 @@ GOARCHES ?= amd64
 
 export CGO_ENABLED = 0
 export GO111MODULE = on
-export GOFLAGS = -mod=vendor
 
 # build compiles the binaries for all the target os/arch combinations
 build:
@@ -47,9 +46,8 @@ compress:
 
 # deps updates all dependencies to their latest version and vendors the changes
 deps:
-	@go get -u -t -mod="" ./...
+	@go get -u -t ./...
 	@go mod tidy
-	@go mod vendor
 .PHONY: deps
 
 # dev installs the tool locally

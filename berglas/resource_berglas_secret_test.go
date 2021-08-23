@@ -15,13 +15,14 @@
 package berglas
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/pkg/errors"
 )
 
@@ -58,8 +59,9 @@ func TestAccBerglasSecret_basic(t *testing.T) {
 func testAccBerglasSecret(t testing.TB, bucket, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*config)
-		client, ctx := config.Client(), config.Context()
+		client := config.Client()
 
+		ctx := context.Background()
 		if _, err := client.Read(ctx, &berglas.ReadRequest{
 			Bucket: bucket,
 			Object: name,
@@ -74,8 +76,9 @@ func testAccBerglasSecret(t testing.TB, bucket, name string) resource.TestCheckF
 func testAccBerglasSecretDestroy(t testing.TB, bucket, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*config)
-		client, ctx := config.Client(), config.Context()
+		client := config.Client()
 
+		ctx := context.Background()
 		if _, err := client.Read(ctx, &berglas.ReadRequest{
 			Bucket: bucket,
 			Object: name,

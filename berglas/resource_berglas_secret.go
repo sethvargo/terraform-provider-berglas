@@ -15,44 +15,48 @@
 package berglas
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceBerglasSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceBerglasSecretCreate,
-		Read:   resourceBerglasSecretRead,
-		Update: resourceBerglasSecretUpdate,
-		Delete: resourceBerglasSecretDelete,
+		CreateContext: resourceBerglasSecretCreate,
+		ReadContext:   resourceBerglasSecretRead,
+		UpdateContext: resourceBerglasSecretUpdate,
+		DeleteContext: resourceBerglasSecretDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: resourceBerglasSecretImport,
+			StateContext: resourceBerglasSecretImport,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:        schema.TypeString,
 				Description: "Name of the Cloud Storage bucket for the secret",
 				ForceNew:    true,
 				Required:    true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Description: "Name of the secret object in the bucket",
 				ForceNew:    true,
 				Required:    true,
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Description: "Fully-qualified name of the Cloud KMS key",
 				ForceNew:    true,
 				Required:    true,
 			},
 
-			"plaintext": &schema.Schema{
+			"plaintext": {
 				Type:        schema.TypeString,
 				Description: "Plaintext contents",
 				Required:    true,
@@ -62,13 +66,13 @@ func resourceBerglasSecret() *schema.Resource {
 			//
 			// Computed
 			//
-			"generation": &schema.Schema{
+			"generation": {
 				Type:        schema.TypeInt,
 				Description: "Generation of the object",
 				Computed:    true,
 			},
 
-			"metageneration": &schema.Schema{
+			"metageneration": {
 				Type:        schema.TypeInt,
 				Description: "Metageneration of the object",
 				Computed:    true,
@@ -77,9 +81,9 @@ func resourceBerglasSecret() *schema.Resource {
 	}
 }
 
-func resourceBerglasSecretCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceBerglasSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*config)
-	client, ctx := config.Client(), config.Context()
+	client := config.Client()
 
 	bucket := d.Get("bucket").(string)
 	name := d.Get("name").(string)
@@ -93,7 +97,7 @@ func resourceBerglasSecretCreate(d *schema.ResourceData, meta interface{}) error
 		Plaintext: []byte(plaintext),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to create secret: %w", err))
 	}
 
 	id := encodeId(bucket, secret.Name, secret.Generation)
@@ -103,19 +107,19 @@ func resourceBerglasSecretCreate(d *schema.ResourceData, meta interface{}) error
 		"generation":     secret.Generation,
 		"metageneration": secret.Metageneration,
 	}); err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to update resource fields: %w", err))
 	}
 
-	return resourceBerglasSecretRead(d, meta)
+	return resourceBerglasSecretRead(ctx, d, meta)
 }
 
-func resourceBerglasSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*config)
-	client, ctx := config.Client(), config.Context()
+	client := config.Client()
 
 	bucket, object, generation, err := decodeId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to decode id: %w", err))
 	}
 
 	secret, err := client.Read(ctx, &berglas.ReadRequest{
@@ -124,7 +128,7 @@ func resourceBerglasSecretRead(d *schema.ResourceData, meta interface{}) error {
 		Generation: generation,
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to read secret: %w", err))
 	}
 
 	if err := setMany(d, resourceFields{
@@ -135,19 +139,19 @@ func resourceBerglasSecretRead(d *schema.ResourceData, meta interface{}) error {
 		"generation":     secret.Generation,
 		"metageneration": secret.Metageneration,
 	}); err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to update resource fields: %w", err))
 	}
 
 	return nil
 }
 
-func resourceBerglasSecretUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceBerglasSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*config)
-	client, ctx := config.Client(), config.Context()
+	client := config.Client()
 
 	bucket, object, generation, err := decodeId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to decode id: %w", err))
 	}
 
 	if d.HasChange("plaintext") {
@@ -160,7 +164,7 @@ func resourceBerglasSecretUpdate(d *schema.ResourceData, meta interface{}) error
 			Plaintext:      []byte(d.Get("plaintext").(string)),
 		})
 		if err != nil {
-			return err
+			return diag.FromErr(fmt.Errorf("failed to update secret: %w", err))
 		}
 
 		id := encodeId(bucket, secret.Name, secret.Generation)
@@ -171,31 +175,29 @@ func resourceBerglasSecretUpdate(d *schema.ResourceData, meta interface{}) error
 			"metageneration": secret.Metageneration,
 			"plaintext":      string(secret.Plaintext),
 		}); err != nil {
-			return err
+			return diag.FromErr(fmt.Errorf("failed to update resource fields: %w", err))
 		}
 
-		if err := resourceBerglasSecretRead(d, meta); err != nil {
-			return err
-		}
+		return resourceBerglasSecretRead(ctx, d, meta)
 	}
 
 	return nil
 }
 
-func resourceBerglasSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceBerglasSecretDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	config := meta.(*config)
-	client, ctx := config.Client(), config.Context()
+	client := config.Client()
 
 	bucket, object, _, err := decodeId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to decode id: %w", err))
 	}
 
 	if err := client.Delete(ctx, &berglas.DeleteRequest{
 		Bucket: bucket,
 		Object: object,
 	}); err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("failed to delete secret: %w", err))
 	}
 
 	d.SetId("")
@@ -203,10 +205,10 @@ func resourceBerglasSecretDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceBerglasSecretImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceBerglasSecretImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	bucket, object, generation, err := decodeId(d.Id())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode id: %w", err)
 	}
 
 	if err := setMany(d, resourceFields{
@@ -214,11 +216,11 @@ func resourceBerglasSecretImport(d *schema.ResourceData, meta interface{}) ([]*s
 		"name":       object,
 		"generation": generation,
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update resource fields: %w", err)
 	}
 
-	if err := resourceBerglasSecretRead(d, meta); err != nil {
-		return nil, err
+	if diag := resourceBerglasSecretRead(ctx, d, meta); diag.HasError() {
+		return nil, fmt.Errorf("failed to read secret")
 	}
 
 	return []*schema.ResourceData{d}, nil

@@ -15,29 +15,32 @@
 package berglas
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceBerglasSecret() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceBerglasSecretRead,
+		ReadContext: dataSourceBerglasSecretRead,
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:        schema.TypeString,
 				Description: "Name of the Cloud Storage bucket for the secret",
 				ForceNew:    true,
 				Required:    true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Description: "Name of the secret object in the bucket",
 				ForceNew:    true,
 				Required:    true,
 			},
 
-			"generation": &schema.Schema{
+			"generation": {
 				Type:        schema.TypeInt,
 				Description: "Generation of the object",
 				Optional:    true,
@@ -46,21 +49,21 @@ func dataSourceBerglasSecret() *schema.Resource {
 			//
 			// Computed
 			//
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Description: "Fully-qualified name of the Cloud KMS key",
 				ForceNew:    true,
 				Computed:    true,
 			},
 
-			"plaintext": &schema.Schema{
+			"plaintext": {
 				Type:        schema.TypeString,
 				Description: "Plaintext contents",
 				Computed:    true,
 				Sensitive:   true,
 			},
 
-			"metageneration": &schema.Schema{
+			"metageneration": {
 				Type:        schema.TypeInt,
 				Description: "Metageneration of the object",
 				Computed:    true,
@@ -69,12 +72,12 @@ func dataSourceBerglasSecret() *schema.Resource {
 	}
 }
 
-func dataSourceBerglasSecretRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	bucket := d.Get("bucket").(string)
 	name := d.Get("name").(string)
 	generation := d.Get("generation").(int)
 
 	id := encodeId(bucket, name, int64(generation))
 	d.SetId(id)
-	return resourceBerglasSecretRead(d, meta)
+	return resourceBerglasSecretRead(ctx, d, meta)
 }
