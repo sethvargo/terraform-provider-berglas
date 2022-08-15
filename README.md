@@ -33,16 +33,17 @@ see [sensitive state][sensitive-state].**
 
 #### Optionally
 
-If using terraform v0.13+ you can create a `versions.tf` file to pull the plugin during `terraform init` without installing it locally
+If using terraform v0.13+ you can create a `versions.tf` file to pull the plugin during `terraform init` without installing it locally:
+
 ```hcl
-    terraform {
-      required_providers {
-        berglas = {
-          source  = "sethvargo/berglas"
-          version = "0.1.0"
-        }
-      }
+terraform {
+  required_providers {
+    berglas = {
+      source  = "sethvargo/berglas"
+      version = "~> 0.1"
     }
+  }
+}
 ```
 
 
