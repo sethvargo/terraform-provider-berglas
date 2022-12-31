@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
 	"context"
@@ -25,6 +25,8 @@ import (
 
 func resourceBerglasSecret() *schema.Resource {
 	return &schema.Resource{
+		Description: "Create and manage Berglas secrets.",
+
 		CreateContext: resourceBerglasSecretCreate,
 		ReadContext:   resourceBerglasSecretRead,
 		UpdateContext: resourceBerglasSecretUpdate,
@@ -81,7 +83,7 @@ func resourceBerglasSecret() *schema.Resource {
 	}
 }
 
-func resourceBerglasSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBerglasSecretCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	config := meta.(*config)
 	client := config.Client()
 
@@ -113,7 +115,7 @@ func resourceBerglasSecretCreate(ctx context.Context, d *schema.ResourceData, me
 	return resourceBerglasSecretRead(ctx, d, meta)
 }
 
-func resourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	config := meta.(*config)
 	client := config.Client()
 
@@ -145,7 +147,7 @@ func resourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceBerglasSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBerglasSecretUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	config := meta.(*config)
 	client := config.Client()
 
@@ -184,7 +186,7 @@ func resourceBerglasSecretUpdate(ctx context.Context, d *schema.ResourceData, me
 	return nil
 }
 
-func resourceBerglasSecretDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceBerglasSecretDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	config := meta.(*config)
 	client := config.Client()
 
@@ -205,7 +207,7 @@ func resourceBerglasSecretDelete(ctx context.Context, d *schema.ResourceData, me
 	return nil
 }
 
-func resourceBerglasSecretImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceBerglasSecretImport(ctx context.Context, d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 	bucket, object, generation, err := decodeId(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode id: %w", err)

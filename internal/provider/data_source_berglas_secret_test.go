@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
 	"context"
@@ -56,8 +56,8 @@ func TestAccDataSourceBerglasSecret_basic(t *testing.T) {
 	rn := "data.berglas_secret.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testDataBerglasSecret_basic(t, bucket, name, secret.Generation),

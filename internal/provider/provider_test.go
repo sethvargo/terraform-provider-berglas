@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
 	"os"
@@ -21,11 +21,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var testAccProviders map[string]*schema.Provider
-var testAccProvider *schema.Provider
+var testProviderFactories = map[string]func() (*schema.Provider, error){
+	"berglas": func() (*schema.Provider, error) {
+		return New("test")(), nil
+	},
+}
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	if err := New("test")().InternalValidate(); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -47,10 +50,3 @@ func testAccKey(tb testing.TB) string {
 }
 
 func testAccPreCheck(tb testing.TB) {}
-
-func init() {
-	testAccProvider = Provider()
-	testAccProviders = map[string]*schema.Provider{
-		"berglas": testAccProvider,
-	}
-}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
 	"context"
@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/pkg/errors"
 )
 
 func TestAccBerglasSecret_basic(t *testing.T) {
@@ -34,9 +33,9 @@ func TestAccBerglasSecret_basic(t *testing.T) {
 	key := testAccKey(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccBerglasSecretDestroy(t, bucket, name),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testProviderFactories,
+		CheckDestroy:      testAccBerglasSecretDestroy(t, bucket, name),
 		Steps: []resource.TestStep{
 			{
 				Config: testBerglasSecret_basic(t, bucket, name, key),
@@ -58,7 +57,7 @@ func TestAccBerglasSecret_basic(t *testing.T) {
 
 func testAccBerglasSecret(t testing.TB, bucket, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		config := testAccProvider.Meta().(*config)
+		config := New("test")().Meta().(*config)
 		client := config.Client()
 
 		ctx := context.Background()
@@ -66,7 +65,7 @@ func testAccBerglasSecret(t testing.TB, bucket, name string) resource.TestCheckF
 			Bucket: bucket,
 			Object: name,
 		}); err != nil {
-			return errors.Wrap(err, "failed to get secret")
+			return fmt.Errorf("failed to get secret: %w", err)
 		}
 
 		return nil
@@ -75,7 +74,7 @@ func testAccBerglasSecret(t testing.TB, bucket, name string) resource.TestCheckF
 
 func testAccBerglasSecretDestroy(t testing.TB, bucket, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		config := testAccProvider.Meta().(*config)
+		config := New("test")().Meta().(*config)
 		client := config.Client()
 
 		ctx := context.Background()
@@ -83,7 +82,7 @@ func testAccBerglasSecretDestroy(t testing.TB, bucket, name string) resource.Tes
 			Bucket: bucket,
 			Object: name,
 		}); err == nil {
-			return errors.New("expected resource to be deleted")
+			return fmt.Errorf("expected resource to be deleted")
 		}
 
 		return nil
