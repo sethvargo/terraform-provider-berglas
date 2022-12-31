@@ -1,12 +1,12 @@
 variable "bucket" {
-  type = "string"
+  type = string
 }
 
 data "berglas_secret" "apikey" {
-  bucket = "${var.bucket}"
+  bucket = var.bucket
   name   = "service-apikey"
 }
 
 output "demo" {
-  value = "${data.berglas_secret.apikey.plaintext}"
+  value = data.berglas_secret.apikey.plaintext
 }

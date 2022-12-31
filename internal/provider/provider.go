@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
 	"context"
@@ -20,71 +20,77 @@ import (
 	"log"
 	"strings"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
+
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sethvargo/terraform-provider-berglas/internal/pathorcontents"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/option"
 )
 
 const (
 	cloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
-// Provider returns the actual provider instance.
-func Provider() *schema.Provider {
-	provider := &schema.Provider{
-		Schema: map[string]*schema.Schema{
-			"credentials": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"GOOGLE_APPLICATION_CREDENTIALS",
-					"GOOGLE_CREDENTIALS",
-					"GOOGLE_CLOUD_KEYFILE_JSON",
-					"GCLOUD_KEYFILE_JSON",
-				}, nil),
-				Description: strings.TrimSpace(`
+func init() {
+	schema.DescriptionKind = schema.StringMarkdown
+}
+
+func New(version string) func() *schema.Provider {
+	return func() *schema.Provider {
+		p := &schema.Provider{
+			Schema: map[string]*schema.Schema{
+				"credentials": {
+					Type:     schema.TypeString,
+					Optional: true,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLE_APPLICATION_CREDENTIALS",
+						"GOOGLE_CREDENTIALS",
+						"GOOGLE_CLOUD_KEYFILE_JSON",
+						"GCLOUD_KEYFILE_JSON",
+					}, nil),
+					Description: strings.TrimSpace(`
 JSON credentials with which to authenticate against the API. This can be set to
 the raw credential contents or it can be set to a file path on disk which
 contains the file contents.
 `),
-				ConflictsWith: []string{"access_token"},
-			},
+					ConflictsWith: []string{"access_token"},
+				},
 
-			"access_token": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"GOOGLE_OAUTH_ACCESS_TOKEN",
-				}, nil),
-				Description: strings.TrimSpace(`
+				"access_token": {
+					Type:     schema.TypeString,
+					Optional: true,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLE_OAUTH_ACCESS_TOKEN",
+					}, nil),
+					Description: strings.TrimSpace(`
 OAuth2 access token to use for communicating with Google APIs.
 `),
-				ConflictsWith: []string{"credentials"},
+					ConflictsWith: []string{"credentials"},
+				},
 			},
-		},
 
-		DataSourcesMap: map[string]*schema.Resource{
-			"berglas_secret": dataSourceBerglasSecret(),
-		},
+			DataSourcesMap: map[string]*schema.Resource{
+				"berglas_secret": dataSourceBerglasSecret(),
+			},
 
-		ResourcesMap: map[string]*schema.Resource{
-			"berglas_secret": resourceBerglasSecret(),
-		},
+			ResourcesMap: map[string]*schema.Resource{
+				"berglas_secret": resourceBerglasSecret(),
+			},
+		}
+
+		// Meta, but we have to pass the provider into itself
+		p.ConfigureContextFunc = providerConfigure(version, p)
+
+		return p
 	}
-
-	// Meta, but we have to pass the provider into itself
-	provider.ConfigureContextFunc = providerConfigure(provider)
-
-	return provider
 }
 
 // providerConfigure configures the provider
-func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
-	return func(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func providerConfigure(version string, p *schema.Provider) schema.ConfigureContextFunc {
+	return func(_ context.Context, d *schema.ResourceData) (any, diag.Diagnostics) {
 		accessToken := d.Get("access_token").(string)
 		credentials := d.Get("credentials").(string)
 

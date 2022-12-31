@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
 	"context"
@@ -23,6 +23,8 @@ import (
 
 func dataSourceBerglasSecret() *schema.Resource {
 	return &schema.Resource{
+		Description: "Access Berglas secrets.",
+
 		ReadContext: dataSourceBerglasSecretRead,
 
 		Schema: map[string]*schema.Schema{
@@ -72,7 +74,7 @@ func dataSourceBerglasSecret() *schema.Resource {
 	}
 }
 
-func dataSourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceBerglasSecretRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	bucket := d.Get("bucket").(string)
 	name := d.Get("name").(string)
 	generation := d.Get("generation").(int)

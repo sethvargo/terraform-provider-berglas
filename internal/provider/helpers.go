@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package berglas
+package provider
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/pkg/errors"
 )
 
 // encodeId encodes the ID from the given parts.
@@ -36,10 +36,9 @@ func encodeId(bucket, object string, generation int64) string {
 
 // decodeId explodes the ID into the given parts.
 func decodeId(id string) (string, string, int64, error) {
-
 	parts := strings.SplitN(id, "/", 2)
 	if len(parts) != 2 {
-		return "", "", 0, errors.New("id must be {bucket}/{object}#{version}")
+		return "", "", 0, fmt.Errorf("id must be {bucket}/{object}#{version}")
 	}
 
 	bucket, remainder := sanitizeBucket(parts[0]), parts[1]
@@ -51,7 +50,7 @@ func decodeId(id string) (string, string, int64, error) {
 	if len(parts) > 1 {
 		i, err := strconv.ParseInt(parts[1], 10, 64)
 		if err != nil {
-			return "", "", 0, errors.Wrap(err, "failed to parse generation")
+			return "", "", 0, fmt.Errorf("failed to parse generation: %w", err)
 		}
 		generation = i
 	}
@@ -66,7 +65,7 @@ type resourceFields map[string]interface{}
 func setMany(d *schema.ResourceData, m resourceFields) error {
 	for k, v := range m {
 		if err := d.Set(k, v); err != nil {
-			return errors.Wrapf(err, "failed to set %q", k)
+			return fmt.Errorf("failed to set %q: %w", k, err)
 		}
 	}
 	return nil
